@@ -1,4 +1,4 @@
-package main
+package gocuisearch
 
 import (
 	"math"
@@ -241,6 +241,7 @@ type RawItem struct {
 	Content          string
 	ContentOut       string
 
+	Idx   int
 	Score float64
 	Key   string
 }
@@ -255,7 +256,7 @@ func (e RawItems) Len() int {
 	return len(e)
 }
 
-func NewRawItemFromRecordForQuery(record SearchApp, terms []string, debug bool) (RawItem, error) {
+func NewRawItemFromRecordForQuery(idx int, record SearchApp, terms []string, debug bool) (RawItem, error) {
 	const hitScore = 1.0
 	const hitScoreConsecutive = 0.01
 	const properMatchScore = 0.3
@@ -289,6 +290,7 @@ func NewRawItemFromRecordForQuery(record SearchApp, terms []string, debug bool) 
 		ContentWithColor: ContentWithColor,
 		Score:            score,
 		Key:              key,
+		Idx:              idx,
 	}
 	return it, nil
 }

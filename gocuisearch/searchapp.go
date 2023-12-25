@@ -1,4 +1,4 @@
-package main
+package gocuisearch
 
 type SearchApp struct {
 	IsRaw   bool

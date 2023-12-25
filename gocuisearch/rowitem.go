@@ -1,4 +1,4 @@
-package main
+package gocuisearch
 
 type RowItem struct {
 	Deleted  bool   `json:"deleted,omitempty"`
