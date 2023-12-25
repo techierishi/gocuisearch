@@ -1,4 +1,4 @@
-module gocuisearch
+module github.com/techierishi/gocuisearch
 
 go 1.21.1
 

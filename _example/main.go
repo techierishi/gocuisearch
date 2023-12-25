@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
-	"gocuisearch/gocuisearch"
 	"os"
 	"strconv"
-)
 
-const exitCodeExecute = 111
+	"github.com/techierishi/gocuisearch"
+)
 
 func main() {
 
