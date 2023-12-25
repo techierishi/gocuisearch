@@ -6,25 +6,33 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/awesome-gocui/gocui"
+	"github.com/sahilm/fuzzy"
 )
 
 const exitCodeExecute = 111
 
 func main() {
 
-	output, exitCode := runReshCli()
+	var records []SearchApp
+	for i := 0; i < 2000; i++ {
+		records = append(records, NewSearchApp(&RowItem{
+			Content: `
+				kubectl get pod` + strconv.Itoa(i),
+		}))
+	}
+
+	output, _ := CuiSearch(records)
 	fmt.Print(output)
-	os.Exit(exitCode)
+	os.Exit(0)
 }
 
-func runReshCli() (string, int) {
+func CuiSearch(records []SearchApp) (string, int) {
 
 	g, err := gocui.NewGui(gocui.OutputNormal, false)
 	if err != nil {
@@ -34,16 +42,6 @@ func runReshCli() (string, int) {
 
 	g.Cursor = true
 	g.Highlight = true
-
-	records := []SearchApp{}
-
-	for i := 0; i < 200; i++ {
-		records = append(records, NewSearchApp(&RowItem{
-			Content:  "kubectl get pod" + strconv.Itoa(i),
-			Favorite: false,
-		}))
-	}
-
 	st := state{
 		gui:          g,
 		cliRecords:   records,
@@ -169,7 +167,7 @@ func (m manager) updateRawData(ctx context.Context, input string) {
 		"itemCount", len(m.s.data),
 	)
 	query := GetRawTermsFromString(input, true)
-	var data []RawItem
+	var data RawItems
 	itemSet := make(map[string]bool)
 	for _, rec := range m.s.cliRecords {
 		if shouldCancel(ctx) {
@@ -192,18 +190,22 @@ func (m manager) updateRawData(ctx context.Context, input string) {
 	slog.Debug("Got new RAW items from records for query, sorting items ...",
 		"itemCount", len(data),
 	)
-	sort.SliceStable(data, func(p, q int) bool {
-		return data[p].Score > data[q].Score
-	})
+	matches := fuzzy.FindFrom(input, data)
 	m.s.lock.Lock()
 	defer m.s.lock.Unlock()
+
 	m.s.rawData = nil
-	for _, itm := range data {
-		if len(m.s.rawData) > 420 {
-			break
+	if matches == nil {
+		m.s.rawData = data
+	} else {
+		for _, match := range matches {
+			if len(m.s.rawData) > 420 {
+				break
+			}
+			m.s.rawData = append(m.s.rawData, data[match.Index])
 		}
-		m.s.rawData = append(m.s.rawData, itm)
 	}
+
 	m.s.highlightedItem = 0
 	timeEnd := time.Now()
 	slog.Debug("Done with RAW data update",
@@ -286,7 +288,7 @@ func (m manager) Layout(g *gocui.Gui) error {
 
 	v.Editable = true
 	v.Editor = m
-	v.Title = " SEARCH INPUT "
+	v.Title = " SEARCH QUERY "
 	g.SetCurrentView("input")
 
 	m.s.lock.Lock()
@@ -302,7 +304,7 @@ func (m manager) Layout(g *gocui.Gui) error {
 		slog.Error("Failed to set view 'body'", err)
 	}
 	v.Frame = false
-	v.Autoscroll = true
+	v.Autoscroll = false
 	v.Clear()
 	v.Rewind()
 

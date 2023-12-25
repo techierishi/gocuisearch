@@ -245,6 +245,16 @@ type RawItem struct {
 	Key   string
 }
 
+type RawItems []RawItem
+
+func (e RawItems) String(i int) string {
+	return e[i].Content
+}
+
+func (e RawItems) Len() int {
+	return len(e)
+}
+
 func NewRawItemFromRecordForQuery(record SearchApp, terms []string, debug bool) (RawItem, error) {
 	const hitScore = 1.0
 	const hitScoreConsecutive = 0.01
